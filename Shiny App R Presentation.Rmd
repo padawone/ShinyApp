@@ -1,0 +1,135 @@
+---
+title: "Cantabria Monuments Shiny App"
+author: "Laro Navamuel"
+date: "13 de agosto de 2018"
+output:
+  revealjs::revealjs_presentation:
+    theme: sky
+    highlight: pygments
+    center: false
+    self_contained: true
+    reveal_options:
+      slideNumber: true
+      previewLinks: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+```
+##Project Assignment
+This peer assessed assignment has two parts. 
+
+-First, you will create a Shiny application and deploy it on Rstudio's servers. 
+-Second, you will use Slidify or Rstudio Presenter to prepare a reproducible pitch presentation about your application.
+
+Your Shiny Application
+
+ 1.Write a shiny application with associated supporting documentation. The documentation should be thought of as whatever a user will need to get started using  your application.
+ 2.Deploy the application on Rstudio's shiny server
+ 3.Share the application link by pasting it into the provided text box
+ 4.Share your server.R and ui.R code on github
+
+The application must include the following:
+
+ 1.Some form of input (widget: textbox, radio button, checkbox, ...)
+ 2.Some operation on the ui input in sever.R
+ 3.Some reactive output displayed as a result of server calculations
+ 4.You must also include enough documentation so that a novice user could use your application.
+ 5.The documentation should be at the Shiny website itself. Do not post to an external link.
+
+
+## Project Presentation
+
+Main subject of this project is create a Shiny App made in R with Shiny.
+"Take a fresh, interactive approach to telling your data story with Shiny. Let users interact with your data and your analysis. And do it all with R.
+Shiny is an R package that makes it easy to build interactive web apps straight from R. You can host standalone apps on a webpage or embed them in R Markdown documents or build dashboards. You can also extend your Shiny apps with CSS themes, htmlwidgets, and JavaScript actions. 
+
+
+## The subject
+
+
+North of Spain, and more specifically Cantabria,has a considerable amount of monuments.
+Is more remarkable taking into consideration total surface of this small state, compared to others in Spain.
+Vast majority of monuments are religious, but one in special is famous, is Altamira Caves, named Prehistoric Sixtine chapelle for his unique caracteristics and paintings.
+
+This shiny app allows the user have a tool to explore and locate all monuments of all kind in Cantabria.
+
+## The project elements
+
+
+
+The project is built based in two elements:
+-An interactive app made with Shiny
+-This presentation built with R Presenter.
+
+Interactive application is made into a shiny dashboard, on left side panel exist a dropdown list with all regions where Cantabria has monuments.
+The output is a map built with Leaflet, showing location and description of monuments located in the user selected regions.
+By default all regions are selected and showed on leaflet map.
+
+The application can be found in this address: [Cantabria Monuments App](https://padawone.shinyapps.io/shinyapp/) 
+
+The code is located on GitHub Repository: 
+
+
+## The Code
+
+```{r reading Data,echo=TRUE}
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+# Read data
+Cant_Patrimonio <- read.csv("./ShinyApp/data/Patrimonio.csv", encoding="UTF-8",sep=";",header=TRUE,stringsAsFactors = FALSE)
+
+#Our coordinates are in Grades Minutes and Seconds, is needed to transform into decimal grades, but first
+#separate data into latitud and longitude.
+Cant_Patrimonio$Grados_Lat <- matrix(unlist(str_sub(Cant_Patrimonio$Coordenadas,start=1,end = 10)), ncol=1, byrow=TRUE)
+Cant_Patrimonio$Grados_Long <- matrix(unlist(str_sub(Cant_Patrimonio$Coordenadas,start=-10)), ncol=1, byrow=TRUE)
+
+#(23° 08' 06'' N) = (23 + (08 / 60) + (06 / 3600)) = 23.134999
+#If coordinates are South or West values are negative.
+
+if (str_sub(Cant_Patrimonio$Grados_Lat,start=10,end=10) =='N') {
+        Cant_Patrimonio$Latitud <- as.numeric(str_sub(Cant_Patrimonio$Grados_Lat,start=1,end=2)) + as.numeric(str_sub(Cant_Patrimonio$Grados_Lat,start=4,end=5))/60 + as.numeric(str_sub(Cant_Patrimonio$Grados_Lat,start=7,end=8))/3600
+        
+} else {
+        Cant_Patrimonio$Latitud <- as.numeric(str_sub(Cant_Patrimonio$Grados_Lat,start=1,end=2)) + as.numeric(str_sub(Cant_Patrimonio$Grados_Lat,start=4,end=5))/60 + as.numeric(str_sub(Cant_Patrimonio$Grados_Lat,start=7,end=8))/3600
+        Cant_Patrimonio$Latitud <- Cant_Patrimonio$Latitud *-1
+}
+
+if (str_sub(Cant_Patrimonio$Grados_Long,start=10,end=10) =='E') {
+        Cant_Patrimonio$Longitud <- as.numeric(str_sub(Cant_Patrimonio$Grados_Long,start=2,end=2)) + as.numeric(str_sub(Cant_Patrimonio$Grados_Long,start=4,end=5))/60 + as.numeric(str_sub(Cant_Patrimonio$Grados_Long,start=7,end=8))/3600
+        
+} else {
+        Cant_Patrimonio$Longitud <- as.numeric(str_sub(Cant_Patrimonio$Grados_Long,start=2,end=2)) + as.numeric(str_sub(Cant_Patrimonio$Grados_Long,start=4,end=5))/60 + as.numeric(str_sub(Cant_Patrimonio$Grados_Long,start=7,end=8))/3600
+        Cant_Patrimonio$Longitud <- Cant_Patrimonio$Longitud *-1
+}
+
+
+drops <- c("Coordenadas","X","Licencia_Imagenes","Grados_Lat","Grados_Long")
+clean_Cant_Patrimonio <- Cant_Patrimonio[ ,!(names(Cant_Patrimonio) %in% drops)]
+
+
+
+# We need to draw a map with the localization of the events, so we remove observations 
+# with no latitude or longitude
+clean_Cant_Patrimonio <- clean_Cant_Patrimonio %>% subset(!is.na(Latitud) & !is.na(Longitud) & !is.na(Poblacion))
+
+# Then we get the list of regions
+Regions <-clean_Cant_Patrimonio$Poblacion %>% unique() %>% sort() 
+
+
+# At last, we display only the main columns
+DisplayedColumns <- c("X.U.FEFF.Nombre","Tipo","Categoria","Municipio","Poblacion")
+
+```
+
+## About the data
+
+There is no prepared data or public REST service where monuments information of Cantabria become available.
+Information used in this project is built from information extracted from Wikipedia and other fonts.
+Some of the monuments don´t have coordinates assigned this is why not all are showed in map, also are regions with monuments but without city, for
+efficiency purposes creating the map on visualization layer, records with missing information on cities and coordinates are removed.
+
